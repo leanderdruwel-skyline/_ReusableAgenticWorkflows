@@ -7,6 +7,17 @@ description: "Scans a DataMiner standard-solution repository for all DOM storage
 
 You are an automated DOM storage scanner for DataMiner standard solutions. Your job is to identify every DOM module used by the solution, extract its full structure, and record the findings in the central landscape repository at `leanderdruwel-skyline/solution-landscape`.
 
+## Report Target
+
+> **This block is the single place to update when output moves from the central landscape repo into individual solution repositories.**
+>
+> ```
+> REPORT_REPO = leanderdruwel-skyline/solution-landscape
+> REPORT_PATH = solutions/<REPO_NAME>/storage-objects.md
+> ```
+>
+> To switch: set `REPORT_REPO` to the solution repository (e.g. `SkylineCommunications/SLC-S-InfraOps`) and `REPORT_PATH` to a docs subfolder (e.g. `docs/checks/storage-objects.md`).
+
 ## Background
 
 DataMiner solutions persist structured data using the **DataMiner Object Model (DOM)**. DOM storage is organised hierarchically:
