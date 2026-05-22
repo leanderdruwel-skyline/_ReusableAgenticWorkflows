@@ -9,14 +9,15 @@ You are an automated API surface scanner for DataMiner solutions. Your job is to
 
 ## Scope
 
-Only document objects available through a **compiled, typed API** — DLL, NuGet devpack, or web API.  
+Only document objects that the solution **exposes** through its own compiled, typed API — DLL, NuGet devpack, or web API.  
+**Do NOT document objects from packages the solution merely *consumes*** (e.g. Ticketing or ObjectLinking NuGet packages referenced by InfraOps are InfraOps *dependencies*, not InfraOps *objects*).  
 **Do NOT document objects that are only accessible by reading DOM storage directly.** DOM-only solutions get a finding that records their domain objects for reference but marks them as out-of-scope for the typed API landscape.
 
 ---
 
 ## Step 1 — Find the API Helper Interface in the Solution Source
 
-Search the repository for a file matching the pattern `I*ApiHelper.cs` (e.g. `ISatOpsApiHelper.cs`, `ITicketingApiHelper.cs`).
+Search the solution repository (e.g. `SLC-S-<Module>`) for a file matching the pattern `I*ApiHelper.cs`.
 
 If found, read the file and collect every property whose type matches one of these repository interfaces:
 - `IRepository<T>`
@@ -34,34 +35,37 @@ Skip to **Step 4** once you have the full list.
 
 ---
 
-## Step 2 — No Local API Helper: Check NuGet Packages
+## Step 2 — No Local API Helper: Look for the Solution's Own NuGet/Devpack Repo
 
-If no `I*ApiHelper.cs` was found, inspect the solution's `.csproj` files for `<PackageReference>` entries.
+If no `I*ApiHelper.cs` was found in the solution source, the typed API may be published in a **separate devpack repository** for that solution.
 
-For packages matching `Skyline.DataMiner.SDM.*` or any package whose name suggests it is a typed API/helper devpack, locate the XML documentation file in the NuGet cache:
+Look for a GitHub repository named `SLC-SDM-<Module>` under `SkylineCommunications` (e.g. solution `SLC-S-InfraOps` → devpack `SLC-SDM-InfraOps`).
 
-```
-~/.nuget/packages/<package-id-lowercase>/<version>/lib/**/*.xml
-```
+Within that repo, search for `I*ApiHelper.cs` files. Common locations:
+- `API.Common/Helpers/I*ApiHelper.cs`
+- `SDM.<SubModule>.Common/Helpers/I*ApiHelper.cs`
+- `API/I*ApiHelper.cs`
 
-Parse `<member>` entries for a type named `I<Module>Api` or `I<Module>ApiHelper`. If found, apply the same property-collection logic from Step 1.
+Apply the same property-collection logic from Step 1.
+
+If no `SLC-SDM-<Module>` repo exists, fall back to Step 3.
 
 ---
 
-## Step 3 — No XML Docs: Check GitHub Source
+## Step 3 — Fallback: Check NuGet XML Docs or `SLC-S-<Module>-Nuget`
 
-If the package is not cached locally, or has no XML documentation file, locate its GitHub source repository.
+If neither the solution source nor a `SLC-SDM-<Module>` devpack repo yielded results, try:
 
-Naming convention:  
-`Skyline.DataMiner.SDM.<Module>` → `SkylineCommunications/SLC-S-<Module>-Nuget`
+1. **NuGet cache XML docs:** look in `~/.nuget/packages/<package-id-lowercase>/<version>/lib/**/*.xml` for packages the solution *publishes* (not consumes).  
+2. **`SLC-S-<Module>-Nuget` naming:** some older solutions use this convention (`Skyline.DataMiner.SDM.<Module>` → `SkylineCommunications/SLC-S-<Module>-Nuget`).
 
-Browse the repository for the interface file, typically under `API.Common/` or `API/`. Apply the same property-collection logic from Step 1.
+Browse for the interface file under `API.Common/` or `API/` and apply the same property-collection logic.
 
 ---
 
 ## Step 4 — Compile the Finding
 
-Build a finding document using the template below. Use the repository name (e.g. `SLC-S-SatOps`) as the `<RepoName>`.
+Build a finding document using the template below. Use the repository name (e.g. `SLC-S-InfraOps`) as the `<RepoName>`.
 
 ### Finding document template
 
@@ -70,7 +74,7 @@ Build a finding document using the template below. Use the repository name (e.g.
 
 **Solution:** <Human-readable solution name>
 **Repository:** [<Org>/<RepoName>](https://github.com/<Org>/<RepoName>)
-**Analysed version:** <version from .csproj or tag>
+**NuGet/devpack source:** [<Org>/<DevpackRepo>](https://github.com/<Org>/<DevpackRepo>)  *(if separate repo)*
 **Analysed on:** <today's date>
 
 ---
@@ -83,13 +87,14 @@ Build a finding document using the template below. Use the repository name (e.g.
 
 | Property Name | Repository Type | Model Type | Model Defined In |
 |---|---|---|---|
-| `<PropertyName>` | `IObservableRepository<Foo>` | `Foo` | `src/Models/Foo.cs` |
+| `<PropertyName>` | `IBulkRepository<Foo>` | `Foo` | `path/to/Foo.cs` |
 
 ### What was checked
 
 | Location | What was searched | Found? |
 |---|---|---|
 | Solution source (`**/*.cs`) | `I*ApiHelper.cs` filename | ✅ / ❌ |
+| `SkylineCommunications/SLC-SDM-<Module>` | `I*ApiHelper.cs` | ✅ / ❌ |
 | ... | ... | ... |
 
 ### DOM-managed objects *(include even for DOM-only solutions for reference)*
@@ -110,7 +115,7 @@ Commit the finding document to `leanderdruwel-skyline/solution-landscape`:
 - **File path:** `solutions/<RepoName>.md`
 - **Commit message:** `feat: add API surface finding for <RepoName>`
 
-Then update `solutions/` index table in `README.md` — add or update the row for this solution.
+Then update the solutions table in `README.md` — add or update the row for this solution.
 
 ---
 
