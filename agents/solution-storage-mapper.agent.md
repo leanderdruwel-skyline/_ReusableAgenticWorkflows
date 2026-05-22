@@ -299,6 +299,31 @@ Build the finding document using the template below. Substitute `<RepoName>` wit
 > ✅ **<N> DOM modules documented.** *or* ⚠️ **No DOM modules found.**
 ````
 
+## `--report-mode`
+
+This agent supports `--report-mode`. When active, follow the landscape reporting instructions in [shared/global-instructions.md](shared/global-instructions.md#landscape-reporting---report-mode) to write a `storage-objects` check result to `matrix-data.json`.
+
+The check entry for this agent uses **check id `storage-objects`** and includes two additional fields alongside the standard ones:
+
+```json
+"storage-objects": {
+  "status": "pass | partial | unknown",
+  "note": "<N> owned modules, <M> additionally referenced",
+  "ownedModules": ["(slc)facility_management", "(slc)asset_management"],
+  "accessedModules": ["(slc)facility_management", "(slc)ticketing"],
+  "reportUrl": "https://github.com/leanderdruwel-skyline/solution-landscape/blob/main/solutions/<RepoName>.md",
+  "updatedAt": "<YYYY-MM-DD>"
+}
+```
+
+- **`ownedModules`** — module IDs for which this solution has `SetupContent/DOM/<module-id>/` committed (source = JSON or Both from Step 1c)
+- **`accessedModules`** — ALL module IDs referenced in C# code (owned + external)
+
+**Status rules:**
+- `pass` — all C# module references match owned modules; no external access detected
+- `partial` — some modules referenced in C# have no setup JSON (external or unknown ownership)
+- `unknown` — no DOM modules found at all
+
 ---
 
 ## Step 5 — Write the Finding to the Landscape Repository
